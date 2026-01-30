@@ -227,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   } else {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
-                    const maxSize = 400; // Higher res for email
+                    const maxSize = 400;
                     let { width, height } = img;
 
                     if (width > height) {
@@ -286,7 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <style>
               .mosaic { font-size: 0; text-align: center; }
               .mosaic-item { display: block; width: 100%; padding: 10px; text-align: center; box-sizing: border-box; }
-              .mosaic-item img { display: block; margin: 0 auto; width: auto; max-width: 400px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+              .mosaic-item img { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
             </style>
             <!--[if mso]>
             <style>
