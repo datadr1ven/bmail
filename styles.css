@@ -1,0 +1,30 @@
+/* Minimal custom styles, as Tailwind handles most */
+body {
+  font-family: "Inter", sans-serif; /* Artist-grade font, optional */
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(
+    135deg,
+    #f5f7fa 0%,
+    #c3cfe2 100%
+  ); /* Subtle background */
+}
+
+/* Container for responsive centering */
+.container {
+  max-width: 90vw; /* Mobile-first */
+  margin: 0 auto;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+h1 {
+  text-align: center;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+/* Buttons are now handled by Tailwind in HTML */
