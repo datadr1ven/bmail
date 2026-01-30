@@ -1,73 +1,120 @@
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("Script loaded successfully"); // Debug: Check if script runs
+  console.log("Script loaded successfully");
 
   const fileInput = document.getElementById("file-input");
-  const generateBtn = document.getElementById("generate-btn");
   const mosaicPreview = document.getElementById("mosaic-preview");
   const sendBtn = document.getElementById("send-btn");
 
-  if (!generateBtn) {
-    console.error("Generate button not found!");
-    return;
-  }
-
   let uploadedFiles = [];
+  let fileOrders = [];
 
   fileInput.addEventListener("change", function (event) {
     uploadedFiles = Array.from(event.target.files);
+    fileOrders = uploadedFiles.map((_, index) => index + 1);
     console.log("Files uploaded:", uploadedFiles.length);
-  });
-
-  generateBtn.addEventListener("click", function () {
-    console.log("Generate button clicked"); // Debug: Check if event fires
-
-    if (uploadedFiles.length === 0) {
-      alert("Please upload at least one media file.");
-      return;
-    }
-
-    mosaicPreview.innerHTML = "";
-
-    try {
-      // Generate mosaic
-      const mosaicHTML = generateMosaicHTML(uploadedFiles);
-      mosaicPreview.innerHTML = mosaicHTML;
-      console.log("Mosaic generated successfully"); // Debug: Confirm generation
-    } catch (error) {
-      console.error("Error generating mosaic:", error);
-      alert("Error generating mosaic. Check console for details.");
-    }
+    displayOrderControls();
   });
 
   sendBtn.addEventListener("click", function () {
     if (uploadedFiles.length === 0) {
-      alert("Please generate a mosaic first.");
+      alert("Please upload and order images first.");
       return;
     }
 
-    // Disable button and show loading
+    const uniqueOrders = new Set(fileOrders);
+    if (uniqueOrders.size !== fileOrders.length) {
+      alert("Order values must be unique. Please adjust.");
+      return;
+    }
+
+    const sortedFiles = uploadedFiles.slice().sort((a, b) => {
+      const indexA = uploadedFiles.indexOf(a);
+      const indexB = uploadedFiles.indexOf(b);
+      const orderA = fileOrders[indexA];
+      const orderB = fileOrders[indexB];
+      if (orderA !== orderB) return orderA - orderB;
+      return indexA - indexB;
+    });
+
+    console.log(
+      "Final sorted files for email:",
+      sortedFiles.map((f) => f.name),
+    );
+
     sendBtn.disabled = true;
     sendBtn.textContent = "Preparing...";
 
-    // Generate email-compatible HTML with base64 data URIs
-    generateEmailMosaicHTML(uploadedFiles)
+    generateEmailMosaicHTML(sortedFiles)
       .then((emailHTML) => {
-        // Always open the copy tab for simplicity
         fallbackToCopyTab(emailHTML);
-
-        // Re-enable button
         sendBtn.disabled = false;
         sendBtn.textContent = "Send via Email";
       })
       .catch((error) => {
         console.error("Error generating email HTML:", error);
         alert("Error preparing email. Please try again.");
-
-        // Re-enable button on error
         sendBtn.disabled = false;
         sendBtn.textContent = "Send via Email";
       });
   });
+
+  function displayOrderControls() {
+    console.log("Current fileOrders:", fileOrders);
+    const sortedFiles = uploadedFiles.slice().sort((a, b) => {
+      const indexA = uploadedFiles.indexOf(a);
+      const indexB = uploadedFiles.indexOf(b);
+      const orderA = fileOrders[indexA];
+      const orderB = fileOrders[indexB];
+      if (orderA !== orderB) return orderA - orderB;
+      return indexA - indexB;
+    });
+
+    let html =
+      "<h3 style='margin-bottom: 10px;'>Drag to Reorder Your Images:</h3><div class='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl' id='sortable-grid'>";
+    sortedFiles.forEach((file) => {
+      const originalIndex = uploadedFiles.indexOf(file);
+      const imgSrc = URL.createObjectURL(file);
+      html += `
+        <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-move" draggable="true" data-index="${originalIndex}">
+          <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
+        </div>
+      `;
+    });
+    html += "</div>";
+    mosaicPreview.innerHTML = html;
+
+    // Drag and drop logic
+    const grid = document.getElementById("sortable-grid");
+    let draggedIndex = null;
+
+    grid.addEventListener("dragstart", (e) => {
+      draggedIndex = parseInt(
+        e.target.closest("[data-index]").getAttribute("data-index"),
+      );
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    grid.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    });
+
+    grid.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const target = e.target.closest("[data-index]");
+      if (target) {
+        const targetIndex = parseInt(target.getAttribute("data-index"));
+        if (draggedIndex !== null && draggedIndex !== targetIndex) {
+          // Swap orders
+          const temp = fileOrders[draggedIndex];
+          fileOrders[draggedIndex] = fileOrders[targetIndex];
+          fileOrders[targetIndex] = temp;
+          console.log("Swapped orders:", fileOrders);
+          displayOrderControls(); // Refresh display
+        }
+      }
+    });
+  }
 
   function fallbackToCopyTab(emailHTML) {
     const newWindow = window.open("", "_blank");
@@ -93,9 +140,12 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function generateMosaicHTML(files) {
-    console.log("Generating preview mosaic for", files.length, "files"); // Debug
+    console.log("Generating preview mosaic for", files.length, "files");
+    console.log(
+      "Files in order:",
+      files.map((f) => f.name),
+    );
 
-    // Artist-grade mobile-optimized mosaic with Tailwind, more prominent background and spacing
     let html = `
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl">
     `;
@@ -123,130 +173,116 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function generateEmailMosaicHTML(files) {
     console.log("Generating email mosaic for", files.length, "files");
+    console.log(
+      "Email files in order:",
+      files.map((f) => f.name),
+    );
 
     return new Promise((resolve, reject) => {
-      // Email-compatible responsive structure
-      let html = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Return to Sender</title>
-          <style>
-            .mosaic { font-size: 0; text-align: center; }
-            .mosaic-item { display: block; width: 100%; padding: 10px; text-align: center; box-sizing: border-box; }
-            .mosaic-item img { display: block; margin: 0 auto; width: auto; max-width: 400px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-          </style>
-          <!--[if mso]>
-          <style>
-            .mosaic-item { width: 100% !important; }
-          </style>
-          <![endif]-->
-        </head>
-        <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Arial, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Return to Sender</h1>
-            </div>
-            <div style="background: linear-gradient(to bottom right, #f9fafb, #f3f4f6); padding: 20px; border-radius: 0 0 10px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-              <div class="mosaic">
-      `;
+      const promises = files.map((file) => {
+        return new Promise((res) => {
+          const fileType = file.type.split("/")[0];
+          if (fileType === "image") {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const img = new Image();
+              img.onload = function () {
+                try {
+                  const isGif = file.type === "image/gif";
+                  let dataUrl;
 
-      let processed = 0;
-      const total = files.length;
-
-      if (total === 0) {
-        html += "</div></div></div></body></html>";
-        resolve(html);
-        return;
-      }
-
-      files.forEach((file) => {
-        const fileType = file.type.split("/")[0];
-        if (fileType === "image") {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const img = new Image();
-            img.onload = function () {
-              try {
-                const isGif = file.type === "image/gif";
-                let dataUrl;
-
-                if (isGif) {
-                  // Preserve animation for GIFs
-                  dataUrl = e.target.result;
-                } else {
-                  // Resize and compress for other images
-                  const canvas = document.createElement("canvas");
-                  const ctx = canvas.getContext("2d");
-                  const maxSize = 200;
-                  let { width, height } = img;
-
-                  if (width > height) {
-                    if (width > maxSize) {
-                      height = (height * maxSize) / width;
-                      width = maxSize;
-                    }
+                  if (isGif) {
+                    dataUrl = e.target.result;
                   } else {
-                    if (height > maxSize) {
-                      width = (width * maxSize) / height;
-                      height = maxSize;
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    const maxSize = 200;
+                    let { width, height } = img;
+
+                    if (width > height) {
+                      if (width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                      }
+                    } else {
+                      if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                      }
                     }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    dataUrl = canvas.toDataURL(file.type, 0.8);
                   }
 
-                  canvas.width = width;
-                  canvas.height = height;
-                  ctx.drawImage(img, 0, 0, width, height);
-                  dataUrl = canvas.toDataURL(file.type, 0.8);
+                  res(
+                    `<div class="mosaic-item"><img src="${dataUrl}" alt="${file.name}" style="border-radius: 8px;"></div>`,
+                  );
+                } catch (err) {
+                  console.error(`Error processing image:`, err);
+                  res(
+                    `<div class="mosaic-item" style="color: #666;">Error loading ${file.name}</div>`,
+                  );
                 }
-
-                html += `<div class="mosaic-item"><img src="${dataUrl}" alt="${file.name}"></div>`;
-
-                processed++;
-                if (processed === total) {
-                  html += `
-                    </div>
-                  </div>
-                  <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
-                    <p>Generated with love. <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> | <a href="#" style="color: #667eea; text-decoration: none;">Terms</a></p>
-                  </div>
-                </div>
-              </body>
-            </html>
-                  `;
-                  resolve(html);
-                }
-              } catch (err) {
-                console.error(`Error processing image:`, err);
-                html += `<div class="mosaic-item" style="color: #666;">Error loading ${file.name}</div>`;
-                processed++;
-                if (processed === total) {
-                  html += "</div></div></div></body></html>";
-                  resolve(html);
-                }
-              }
+              };
+              img.src = e.target.result;
             };
-            img.src = e.target.result;
-          };
-          reader.onerror = () => {
-            html += `<div class="mosaic-item" style="color: #666;">Error reading ${file.name}</div>`;
-            processed++;
-            if (processed === total) {
-              html += "</div></div></div></body></html>";
-              resolve(html);
-            }
-          };
-          reader.readAsDataURL(file);
-        } else {
-          html += `<div class="mosaic-item" style="color: #666;">${file.name}</div>`;
-          processed++;
-          if (processed === total) {
-            html += "</div></div></div></body></html>";
-            resolve(html);
+            reader.onerror = () => {
+              res(
+                `<div class="mosaic-item" style="color: #666;">Error reading ${file.name}</div>`,
+              );
+            };
+            reader.readAsDataURL(file);
+          } else {
+            res(
+              `<div class="mosaic-item" style="color: #666;">${file.name}</div>`,
+            );
           }
-        }
+        });
       });
+
+      Promise.all(promises)
+        .then((items) => {
+          let html = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Return to Sender</title>
+            <style>
+              .mosaic { font-size: 0; text-align: center; }
+              .mosaic-item { display: block; width: 100%; padding: 10px; text-align: center; box-sizing: border-box; }
+              .mosaic-item img { display: block; margin: 0 auto; width: auto; max-width: 400px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+            </style>
+            <!--[if mso]>
+            <style>
+              .mosaic-item { width: 100% !important; }
+            </style>
+            <![endif]-->
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Arial, sans-serif;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Return to Sender</h1>
+              </div>
+              <div style="background: linear-gradient(to bottom right, #f9fafb, #f3f4f6); padding: 20px; border-radius: 0 0 10px 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                <div class="mosaic">
+                  ${items.join("")}
+                </div>
+              </div>
+              <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+                <p>Generated with love. <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> | <a href="#" style="color: #667eea; text-decoration: none;">Terms</a></p>
+              </div>
+            </div>
+          </body>
+        </html>
+        `;
+          resolve(html);
+        })
+        .catch(reject);
     });
   }
 });
