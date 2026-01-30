@@ -71,28 +71,20 @@ document.addEventListener("DOMContentLoaded", function () {
       return indexA - indexB;
     });
 
-    let html = `<h3 style='margin-bottom: 10px;'>${!isTouchDevice ? "Tap Two Images to Swap Order:" : "Drag to Reorder Your Images:"}</h3><div class='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl' id='sortable-grid'>`;
+    let html = `<h3 style='margin-bottom: 10px;'>${isTouchDevice ? "Tap Two Images to Swap Order:" : "Drag to Reorder Your Images:"}</h3><div class='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl' id='sortable-grid'>`;
     sortedFiles.forEach((file) => {
       const originalIndex = uploadedFiles.indexOf(file);
       const imgSrc = URL.createObjectURL(file);
-      if (!isTouchDevice) {
-        html += `
-          <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-pointer" data-index="${originalIndex}" style="transition: background-color 0.2s;">
-            <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
-          </div>
-        `;
-      } else {
-        html += `
-          <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-move" draggable="true" data-index="${originalIndex}">
-            <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
-          </div>
-        `;
-      }
+      html += `
+        <div class="flex flex-col items-center p-2 bg-white rounded shadow ${isTouchDevice ? "cursor-pointer" : "cursor-move"}" ${isTouchDevice ? "" : 'draggable="true"'} data-index="${originalIndex}" style="transition: background-color 0.2s;">
+          <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
+        </div>
+      `;
     });
     html += "</div>";
     mosaicPreview.innerHTML = html;
 
-    if (!isTouchDevice) {
+    if (isTouchDevice) {
       let firstSelected = null;
       const items = mosaicPreview.querySelectorAll("[data-index]");
       items.forEach((item) => {
