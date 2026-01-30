@@ -60,6 +60,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function displayOrderControls() {
     console.log("Current fileOrders:", fileOrders);
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
     const sortedFiles = uploadedFiles.slice().sort((a, b) => {
       const indexA = uploadedFiles.indexOf(a);
       const indexB = uploadedFiles.indexOf(b);
@@ -69,51 +71,80 @@ document.addEventListener("DOMContentLoaded", function () {
       return indexA - indexB;
     });
 
-    let html =
-      "<h3 style='margin-bottom: 10px;'>Drag to Reorder Your Images:</h3><div class='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl' id='sortable-grid'>";
+    let html = `<h3 style='margin-bottom: 10px;'>${isTouchDevice ? "Tap Two Images to Swap Order:" : "Drag to Reorder Your Images:"}</h3><div class='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl shadow-2xl' id='sortable-grid'>`;
     sortedFiles.forEach((file) => {
       const originalIndex = uploadedFiles.indexOf(file);
       const imgSrc = URL.createObjectURL(file);
-      html += `
-        <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-move" draggable="true" data-index="${originalIndex}">
-          <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
-        </div>
-      `;
+      if (isTouchDevice) {
+        html += `
+          <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-pointer" data-index="${originalIndex}" style="transition: background-color 0.2s;">
+            <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="flex flex-col items-center p-2 bg-white rounded shadow cursor-move" draggable="true" data-index="${originalIndex}">
+            <img src="${imgSrc}" class="w-full max-h-32 object-contain rounded-lg mb-2 aspect-square" style="border-radius: 8px;">
+          </div>
+        `;
+      }
     });
     html += "</div>";
     mosaicPreview.innerHTML = html;
 
-    // Drag and drop logic
-    const grid = document.getElementById("sortable-grid");
-    let draggedIndex = null;
+    if (isTouchDevice) {
+      let firstSelected = null;
+      const items = mosaicPreview.querySelectorAll("[data-index]");
+      items.forEach((item) => {
+        item.addEventListener("click", () => {
+          const index = parseInt(item.getAttribute("data-index"));
+          if (firstSelected === null) {
+            firstSelected = index;
+            item.style.backgroundColor = "#e0f7fa";
+          } else if (firstSelected === index) {
+            firstSelected = null;
+            item.style.backgroundColor = "";
+          } else {
+            const temp = fileOrders[firstSelected];
+            fileOrders[firstSelected] = fileOrders[index];
+            fileOrders[index] = temp;
+            console.log("Swapped orders:", fileOrders);
+            firstSelected = null;
+            displayOrderControls();
+          }
+        });
+      });
+    } else {
+      const grid = document.getElementById("sortable-grid");
+      let draggedIndex = null;
 
-    grid.addEventListener("dragstart", (e) => {
-      draggedIndex = parseInt(
-        e.target.closest("[data-index]").getAttribute("data-index"),
-      );
-      e.dataTransfer.effectAllowed = "move";
-    });
+      grid.addEventListener("dragstart", (e) => {
+        draggedIndex = parseInt(
+          e.target.closest("[data-index]").getAttribute("data-index"),
+        );
+        e.dataTransfer.effectAllowed = "move";
+      });
 
-    grid.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-    });
+      grid.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
 
-    grid.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const target = e.target.closest("[data-index]");
-      if (target) {
-        const targetIndex = parseInt(target.getAttribute("data-index"));
-        if (draggedIndex !== null && draggedIndex !== targetIndex) {
-          // Swap orders
-          const temp = fileOrders[draggedIndex];
-          fileOrders[draggedIndex] = fileOrders[targetIndex];
-          fileOrders[targetIndex] = temp;
-          console.log("Swapped orders:", fileOrders);
-          displayOrderControls(); // Refresh display
+      grid.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const target = e.target.closest("[data-index]");
+        if (target) {
+          const targetIndex = parseInt(target.getAttribute("data-index"));
+          if (draggedIndex !== null && draggedIndex !== targetIndex) {
+            const temp = fileOrders[draggedIndex];
+            fileOrders[draggedIndex] = fileOrders[targetIndex];
+            fileOrders[targetIndex] = temp;
+            console.log("Swapped orders:", fileOrders);
+            displayOrderControls();
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   function fallbackToCopyTab(emailHTML) {
