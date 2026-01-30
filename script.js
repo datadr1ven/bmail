@@ -9,9 +9,17 @@ document.addEventListener("DOMContentLoaded", function () {
   let fileOrders = [];
 
   fileInput.addEventListener("change", function (event) {
-    uploadedFiles = Array.from(event.target.files);
+    const files = Array.from(event.target.files);
+    const invalidFiles = files.filter(
+      (file) => !file.type.startsWith("image/"),
+    );
+    if (invalidFiles.length > 0) {
+      alert("Only image files are allowed. Please select images only.");
+      return;
+    }
+    uploadedFiles = files;
     fileOrders = uploadedFiles.map((_, index) => index + 1);
-    console.log("Files uploaded:", uploadedFiles.length);
+    console.log("Images uploaded:", uploadedFiles.length);
     displayOrderControls();
   });
 
@@ -147,12 +155,20 @@ document.addEventListener("DOMContentLoaded", function () {
         <html>
         <head>
           <title>Your Media Mosaic - Copy to Email</title>
-          <style>body { font-family: Arial, sans-serif; padding: 20px; }</style>
         </head>
         <body>
-          <h2>Copy this mosaic into your email:</h2>
-          <p>Select all (Ctrl+A) and copy (Ctrl+C), then paste into your email composer.</p>
-          <div id="content">${emailHTML}</div>
+          <div class="container">
+            <h2>Copy this mosaic into your email:</h2>
+            <p>Select all (Ctrl+A) and copy (Ctrl+C), then paste into your email composer.</p>
+            <div id="content">${emailHTML}</div>
+          </div>
+          <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+          .container { width: 100%; margin: 0; padding: 10px; }
+          #content .mosaic { font-size: 0; text-align: center; }
+          #content .mosaic-item { display: block; width: 100%; padding: 5px; text-align: center; box-sizing: border-box; }
+          #content .mosaic-item img { display: block; margin: 0 auto; width: 400px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+          </style>
         </body>
         </html>
       `);
@@ -278,7 +294,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <style>
               .mosaic { font-size: 0; text-align: center; }
               .mosaic-item { display: block; width: 100%; padding: 10px; text-align: center; box-sizing: border-box; }
-              .mosaic-item img { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+              .mosaic-item img { display: block; margin: 0 auto; width: 400px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
             </style>
             <!--[if mso]>
             <style>
@@ -287,7 +303,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <![endif]-->
           </head>
           <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Arial, sans-serif;">
-            <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
+            <div style="max-width: 100%; margin: 0 auto; background: #ffffff;">
               <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Return to Sender</h1>
               </div>
